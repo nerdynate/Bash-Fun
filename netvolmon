@@ -1,0 +1,24 @@
+#!/bin/sh
+# usage: netvolmon DEV [INTERVAL]
+DEV=$1
+IVAL=5
+if [ "$#" -eq 2 ]; then
+    IVAL=$2
+fi
+
+getrxtx() {
+    grep "$1:" /proc/net/dev | sed 's/^.*://' |
+        awk '{print $1, $9}'
+}
+
+rxtx=$(getrxtx $DEV)
+while sleep $IVAL; do
+    nrxtx=$(getrxtx $DEV)
+    (echo $IVAL $rxtx $nrxtx) |
+    awk '{rxd = ($4 - $2) / (1024*1024*$1);
+          txd = ($5 - $3) / (1024*1024*$1);
+          printf "%6.2f MB/s RX %6.2f MB/s TX\n",
+                 rxd, txd}'
+    rxtx="$nrxtx"
+done
+
